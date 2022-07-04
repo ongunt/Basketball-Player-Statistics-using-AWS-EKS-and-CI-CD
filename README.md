@@ -1,7 +1,9 @@
 
-## Udacity Cloud Nanodegree Capstone
+## Basketball Player Statistics API Deployment using EKS and CircleCI
 
-This project aims to deploy a REST API using AWS EKS and automatize it by creating a pipeline using CircleCI.
+This project aims to deploy a REST API using AWS EKS and automatize it by creating a pipeline using CircleCI. The CI\CD enironment will include pushing the built Docker container(s) to the Docker repository and deploying these Docker container(s) to a small Kubernetes cluster. For my Kubernetes cluster I used AWS Kubernetes as a Service. To deploy my Kubernetes cluster, I used Cloudformation and ran these from within Circle CI as an independent pipeline. 
+
+
 Basic requirements for this project are:
 - AWS IAM credentials (Access Key, Secret Access Key)
 - An AMI (Ubuntu Server 22.04.1 LTS 32bit, T2.micro instance with every other setting being default)
@@ -41,21 +43,13 @@ After running everything successfully, you should see an URL with port 8000 that
 
 Relative speed of a player with respect to all of other players (Example: Player 2): http://URLv4_address:8000/relative_speed_plots?player_id=2 
 
-Relative speed of a player with respect to a certain other player (Example: Player 1 and Player 2): 
+Relative speed of a player with respect to a certain other player (Example: Player 1 and Player 2): http://URLv4_address:8000/relative_stats?player_id1=2&player_id2=2 
 
-http://URLv4_address:8000/relative_stats?player_id1=2&player_id2=2 
+Overall stats of a player (Example: Player 2): http://URLv4_address:8000/stats?player_id=2 
 
-Overall stats of a player (Example: Player 2): 
+Plot of the players acceleration (Example: Player 2): http://URLv4_address:8000/player_acceleration_plot?player_id=2 
 
-http://URLv4_address:8000/stats?player_id=2 
-
-Plot of the players acceleration (Example: Player 2): 
-
-http://URLv4_address:8000/player_acceleration_plot?player_id=2 
-
-Plot of the players velocity (Example: Player 2): 
-
-http://URLv4_address:8000/player_speed_plot?player_id=2 
+Plot of the players velocity (Example: Player 2): http://URLv4_address:8000/player_speed_plot?player_id=2 
 
 
 Manually you can run:

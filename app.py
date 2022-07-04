@@ -1,6 +1,6 @@
-from os import environ
 
-from flask import Flask, jsonify
+
+from flask import Flask
 
 
 from controllers import StatisticsController

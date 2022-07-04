@@ -200,7 +200,7 @@ jobs:
               rmdir eksctl_download
 
         - aws-eks/create-cluster:
-            cluster-name: Cluster-${CIRCLE_WORKFLOW_ID:0:7}
+            cluster-name: app
             skip-kubectl-install: false
             verbose: 3
             node-type: t2.micro

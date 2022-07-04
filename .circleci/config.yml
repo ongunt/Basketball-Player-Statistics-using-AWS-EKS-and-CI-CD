@@ -207,7 +207,6 @@ jobs:
             ssh-access: false
             ssh-public-key: '' 
         - destroy-env
-      
     
     kubernetes-cluster-deployment:
       executor: aws-eks/python3

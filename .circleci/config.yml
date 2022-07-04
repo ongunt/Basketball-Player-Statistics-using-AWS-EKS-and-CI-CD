@@ -174,11 +174,11 @@ jobs:
       - run:
           name: run Docker and push
           command: |
-            docker build --tag capstone .
+            docker build --tag app .
             docker image ls     
             docker login --username onguntuna --password $DOCKER_PASSWORD
-            docker tag capstone onguntuna/capstone:latest
-            docker push onguntuna/capstone:latest
+            docker tag app onguntuna/app:latest
+            docker push onguntuna/app:latest
     
     kubernetes-cluster-creation:
       executor: aws-eks/python3

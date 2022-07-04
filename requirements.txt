@@ -1,0 +1,9 @@
+Flask
+numpy
+pylint
+pandas
+matplotlib
+seaborn
+pydantic
+
+

@@ -1,0 +1,259 @@
+version: 2.1
+
+orbs:
+  aws-eks: circleci/aws-eks@1.0.0
+  kubernetes: circleci/kubernetes@0.11.1
+  aws-cli: circleci/aws-cli@3.1.1
+
+commands:
+    install-kubectl:
+      description: |
+        Installs kubectl (latest release, by default)
+        Requirements: curl, amd64 architecture
+      parameters:
+        kubectl-version:
+          default: latest
+          type: string
+        max-time:
+          default: false
+          description: |
+            This parameter will enable the curl command to not timeout for 600 seconds
+          type: boolean
+      steps:
+        - run:
+            command: |
+              #!/bin/bash
+              KUBECTL_VERSION=$(eval echo "$PARAM_KUBECTL_VERSION")
+              MAX_TIME=$(eval echo "$PARAM_MAX_TIME")
+              if [ "$KUBECTL_VERSION" == "latest" ]; then
+                  # get latest kubectl release
+                  KUBECTL_VERSION=$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)
+              fi
+
+              PLATFORM="linux"
+              if [ -n "$(uname | grep "Darwin")" ]; then
+                  PLATFORM="darwin"
+              fi
+
+              # download kubectl
+              if [ "$MAX_TIME" == "1" ]; then
+                  curl --max-time 300 -LO https://storage.googleapis.com/kubernetes-release/release/$KUBECTL_VERSION/bin/$PLATFORM/amd64/kubectl
+              else 
+                  curl -LO https://storage.googleapis.com/kubernetes-release/release/$KUBECTL_VERSION/bin/$PLATFORM/amd64/kubectl
+              fi
+
+              [ -w /usr/local/bin ] && SUDO="" || SUDO=sudo
+
+              $SUDO chmod +x ./kubectl
+
+              $SUDO mv ./kubectl /usr/local/bin
+            environment:
+              PARAM_KUBECTL_VERSION: <<parameters.kubectl-version>>
+              PARAM_MAX_TIME: <<parameters.max-time>>
+            name: Install kubectl
+
+
+
+    install-kops:
+      description: |
+        Installs kops (latest release, by default)
+        Requirements: curl, amd64 architecture
+      parameters:
+        kops-version:
+          default: latest
+          type: string
+      steps:
+        - run:
+            command: >
+              #!/bin/bash
+
+              KOPS_VERSION=$(eval echo "$PARAM_KOPS_VERSION")
+
+              if [[ "$KOPS_VERSION" == "latest" ]]; then
+                  # get latest kops release
+                  KOPS_VERSION=$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)
+              fi
+
+
+              PLATFORM="linux"
+
+              if [ -n "$(uname | grep "Darwin")" ]; then
+                  PLATFORM="darwin"
+              fi
+
+
+              # download kops
+
+              curl -Lo kops
+              https://github.com/kubernetes/kops/releases/download/$KOPS_VERSION/kops-$PLATFORM-amd64
+
+
+              [ -w /usr/local/bin ] && SUDO="" || SUDO=sudo
+
+
+              $SUDO chmod +x kops
+
+              $SUDO mv kops /usr/local/bin/kops
+            environment:
+              PARAM_KOPS_VERSION: <<parameters.kops-version>>
+            name: Install kops
+
+    create-env:
+      description: Create cluster
+      steps:
+        - run:
+            name: creating cluster
+            command: |
+              eksctl create cluster --name=app 
+    
+    update-env: 
+      description: update cluster
+      steps:
+        - run: 
+            name: updating cluster
+            command: |
+              aws eks update-kubeconfig --name app
+
+    destroy-env:
+      description: Destroying cluster on fail
+      steps:
+        - run:
+            name: Destroying cluster
+            when: on_fail
+            command: |
+              aws eks update-kubeconfig --name="app"
+              export KUBECONFIG=/root/.kube/config
+              kubectl get svc
+              kubectl delete -f deployment/
+              eksctl delete cluster app
+
+    rollback:
+      steps:
+        - run:
+            name: Check versions
+            when: on_fail
+            command: |
+              image=$(kubectl get deployment browser-app --namespace=app -o custom-columns=IMAGE:.spec.template.spec.containers[0].image | tail -1)
+              deployed_version="${image:31}"
+              echo "$deployed_version" > rollback_version.txt
+              echo "currently deployed $deployed_version"
+        - run:
+            name: rollback
+            when: on_fail
+            command: |
+              old=$(cat old_version.txt)
+              new=$(cat rollback_version.txt)
+              chmod +x revert_update.sh
+              ./revert_update.sh
+
+
+
+jobs:
+    linting:
+      docker:
+      - image: python:3.7.3-stretch
+      working_directory: ~/repo
+      steps:
+      - checkout
+      - run:
+          name: Install dependencies and lint
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            make install
+            make lint
+
+    docker:
+      docker:
+      - image: circleci/golang:1.15
+      working_directory: ~/repo
+      steps:
+      - setup_remote_docker:
+          version: 19.03.13
+      - checkout
+      - run:
+          name: run Docker and push
+          command: |
+            docker build --tag capstone .
+            docker image ls     
+            docker login --username onguntuna --password $DOCKER_PASSWORD
+            docker tag capstone onguntuna/capstone:latest
+            docker push onguntuna/capstone:latest
+    
+    kubernetes-cluster-creation:
+      executor: aws-eks/python3
+      steps:
+        - checkout
+        - aws-eks/install-aws-iam-authenticator:
+            release-tag: ''
+        - run:
+            name:
+            command: |
+              mkdir -p eksctl_download
+              curl --silent --location --retry 5 "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C eksctl_download
+              chmod +x eksctl_download/eksctl
+              SUDO=""
+              if [ $(id -u) -ne 0 ] && which sudo > /dev/null ; then
+              SUDO="sudo"
+              fi
+              $SUDO mv eksctl_download/eksctl /usr/local/bin/
+              rmdir eksctl_download
+
+        - create-env
+        - destroy-env
+      
+    
+    kubernetes-cluster-deployment:
+      executor: aws-eks/python3
+      steps:
+        - checkout
+
+        - install-kops
+        - install-kubectl
+        - run:
+            name: Install aws
+            command: |
+              pip install awscli
+        
+        - update-env
+        - kubernetes/create-or-update-resource:
+            get-rollout-status: false
+            resource-file-path: deployment.yml
+            resource-name: deployment/capstone
+        - destroy-env
+
+    kubernetes-cluster-test:
+      executor: aws-eks/python3
+      steps:
+        - install-kops
+        - install-kubectl
+        
+        - run:
+            name: Install aws
+            command: |
+              pip install awscli
+        
+        - update-env
+        - run:
+            name: get the url
+            command: |
+              kubectl get services
+        - destroy-env
+
+
+workflows:
+  default:
+    jobs:
+      - linting
+      - docker:
+          requires:
+            - linting
+      - kubernetes-cluster-creation:
+          requires:
+            - docker
+      - kubernetes-cluster-deployment:
+          requires:
+            - kubernetes-cluster-creation
+      - kubernetes-cluster-test:
+          requires:
+            - kubernetes-cluster-deployment

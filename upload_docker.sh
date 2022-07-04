@@ -12,7 +12,7 @@ version="$1"
 # Authenticate & tag
 echo "Docker ID and Image: $dockerpath"
 echo "$DOCKER_HUB_PW" | docker login --username onguntuna --password-stdin
-docker tag app:latest $dockerpath:$version
+docker tag browser-game:latest $dockerpath:$version
 
 # Step 3:
 # Push image to a docker repository

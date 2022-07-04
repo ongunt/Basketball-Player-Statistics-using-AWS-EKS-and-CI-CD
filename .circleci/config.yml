@@ -174,11 +174,11 @@ jobs:
       - run:
           name: run Docker and push
           command: |
-            docker build --tag app .
+            docker build --tag capstone .
             docker image ls     
             docker login --username onguntuna --password $DOCKER_PASSWORD
-            docker tag app onguntuna/app:latest
-            docker push onguntuna/app:latest
+            docker tag capstone onguntuna/capstone:latest
+            docker push onguntuna/capstone:latest
     
     kubernetes-cluster-creation:
       executor: aws-eks/python3
@@ -199,14 +199,9 @@ jobs:
               $SUDO mv eksctl_download/eksctl /usr/local/bin/
               rmdir eksctl_download
 
-        - aws-eks/create-cluster:
-            cluster-name: app
-            skip-kubectl-install: false
-            verbose: 3
-            nodes-max: 2
-            ssh-access: false
-            ssh-public-key: '' 
+        - create-env
         - destroy-env
+      
     
     kubernetes-cluster-deployment:
       executor: aws-eks/python3
@@ -224,7 +219,7 @@ jobs:
         - kubernetes/create-or-update-resource:
             get-rollout-status: false
             resource-file-path: deployment.yml
-            resource-name: deployment/app
+            resource-name: deployment/capstone
         - destroy-env
 
     kubernetes-cluster-test:

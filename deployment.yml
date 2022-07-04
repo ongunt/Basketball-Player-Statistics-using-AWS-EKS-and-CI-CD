@@ -1,14 +1,14 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: app
+  name: capstone
   labels:
-    app: app
+    app: capstone
   namespace: default
 spec:
   selector:
     matchLabels:
-      app: app
+      app: capstone
   replicas: 2
   strategy:
     rollingUpdate:
@@ -18,11 +18,11 @@ spec:
   template:
     metadata:
       labels:
-        app: app
+        app: capstone
     spec:
       containers:
-      - name: app
-        image: onguntuna/app:latest
+      - name: capstone
+        image: onguntuna/capstone:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 80
@@ -31,9 +31,9 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: app
+  name: capstone
   labels:
-    name: app
+    name: capstone
 spec:
   selector:
     app: capstone

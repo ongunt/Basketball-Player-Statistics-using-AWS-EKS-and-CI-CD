@@ -2,4 +2,4 @@
 
 NEWVERSION="$1"
 
-kubectl set image deployment/app app=docker.io/onguntuna/app:$NEWVERSION --namespace=app
+kubectl set image deployment/capstone app=docker.io/onguntuna/capstone:$NEWVERSION --namespace=capstone

@@ -3,6 +3,6 @@
 
 
 echo building
-docker build --tag=app:latest .
+docker build --tag=capstone:latest .
 
-docker run -p 80:80 app
+docker run -p 80:80 capstone

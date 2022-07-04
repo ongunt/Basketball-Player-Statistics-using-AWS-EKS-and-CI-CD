@@ -6,11 +6,11 @@ from flask import Flask, jsonify
 from controllers import StatisticsController
 
 
-def create_app():
-    app = Flask(__name__)
-    import preloaded
-    preloaded.init()
 
-    app.register_blueprint(StatisticsController)
+app = Flask(__name__)
+import preloaded
+preloaded.init()
 
-    return app
+app.register_blueprint(StatisticsController)
+
+app.run(host='0.0.0.0', port=80, debug=True)

@@ -5,7 +5,7 @@ FROM python:3.7.3-stretch
 WORKDIR /app
 ## Step 2:
 # Copy source code to working directory
-COPY . main.py /app/
+COPY . app.py /app/
 ## Step 3:
 # Install packages from requirements.txt
 # hadolint ignore=DL3013
@@ -15,4 +15,4 @@ RUN pip install --upgrade pip && pip install --trusted-host pypi.python.org -r r
 EXPOSE 80
 ## Step 5:
 # Run app.py at container launch
-CMD ["python", "main.py"]
+CMD ["python", "app.py"]
